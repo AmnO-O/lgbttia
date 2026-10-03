@@ -48,6 +48,8 @@ def parse_args():
                         help="Enable Layer 2 Multi-Head Self-Attention interaction between label queries (Ablation H2)")
     parser.add_argument("--no_query_interaction", dest="use_query_interaction", action="store_false",
                         help="Disable Layer 2 MHSA for Ablation Study H2")
+    parser.add_argument("--num_queries", type=int, default=3,
+                        help="Number of learned class queries (= number of hate classes) for 'task_b_class_aware'")
     parser.add_argument("--mmbert_model_name", type=str, default="jhu-clsp/mmbert-base",
                         help="Hugging Face model ID for ModernBERT / mmBERT")
     
@@ -89,6 +91,7 @@ def main():
             embed_source=args.embed_source,
             model_type=args.model,
             use_query_interaction=args.use_query_interaction,
+            num_queries=args.num_queries,
             mmbert_model_name=args.mmbert_model_name,
             epochs=args.epochs,
             batch_size=args.batch_size,
@@ -152,7 +155,8 @@ def main():
                 d_model=config.mmbert_dim,
                 num_heads=config.num_heads,
                 dropout=config.dropout,
-                use_query_interaction=config.use_query_interaction
+                use_query_interaction=config.use_query_interaction,
+                num_queries=config.num_queries
             )
             is_task_b = True
             is_mmbert_tf = False

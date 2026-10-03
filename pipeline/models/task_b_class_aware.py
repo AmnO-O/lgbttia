@@ -41,12 +41,14 @@ class TaskBClassAwareAttentionModel(nn.Module):
         dropout: float = 0.25,
         use_query_interaction: bool = True,   # Ablation hypothesis H2 toggle
         hidden_dim: Optional[int] = None,
+        num_queries: int = NUM_CLASSES,
     ):
         super(TaskBClassAwareAttentionModel, self).__init__()
         self.mmbert = mmbert_model
         self.d_model = d_model
         self.num_heads = num_heads
         self.use_query_interaction = use_query_interaction
+        self.num_queries = num_queries
         hidden_dim = hidden_dim or d_model // 2
 
         # ---------------------------------------------------------------------
@@ -62,7 +64,7 @@ class TaskBClassAwareAttentionModel(nn.Module):
         # LAYER 1: Class-Aware Multi-Head Cross-Attention (MHCA)
         # ---------------------------------------------------------------------
         # 3 Learned Class Queries: [q_NonHate, q_Implicit, q_Explicit]
-        self.query_embeddings = nn.Parameter(torch.empty(NUM_CLASSES, d_model))
+        self.query_embeddings = nn.Parameter(torch.empty(self.num_queries, d_model))
         nn.init.normal_(self.query_embeddings, mean=0.0, std=0.02)
 
         # Cross-Attention where Q=learned class queries, K=V=H_final
@@ -95,11 +97,11 @@ class TaskBClassAwareAttentionModel(nn.Module):
         # Enables joint comparative reasoning across (NonHate vs. Implicit vs. Explicit)
         # ---------------------------------------------------------------------
         self.classifier = nn.Sequential(
-            nn.Linear(NUM_CLASSES * d_model, hidden_dim),
+            nn.Linear(self.num_queries * d_model, hidden_dim),
             nn.LayerNorm(hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_dim, NUM_CLASSES)
+            nn.Linear(hidden_dim, self.num_queries)
         )
 
     def forward(
@@ -172,7 +174,7 @@ class TaskBClassAwareAttentionModel(nn.Module):
         # LAYER 3: Joint Cross-Class Classification Head
         # Concatenate 3 class representations: [B, 3, d_model] -> [B, 3 * d_model]
         # ---------------------------------------------------------------------
-        z_flat = z_prime.reshape(B, NUM_CLASSES * self.d_model)  # [B, 3 * d_model]
+        z_flat = z_prime.reshape(B, self.num_queries * self.d_model)  # [B, 3 * d_model]
         s = self.classifier(z_flat)                              # [B, 3] (raw logits)
 
         # ---------------------------------------------------------------------

@@ -25,6 +25,7 @@ class PipelineConfig:
     mmbert_dim: int = 768
     max_length: int = 256
     use_query_interaction: bool = True          # Layer 2 MHSA Ablation Hypothesis H2
+    num_queries: int = 3                        # Learned class queries in TaskB class-aware attention
     
     # Scratch model parameters
     vocab_size: int = 30000
